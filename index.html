@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+
+  <title>Virtual Piano Hand Tracking</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+
+  <style>
+
+    body{
+      margin:0;
+      padding:0;
+      background:#111;
+      color:white;
+      font-family:Arial;
+      text-align:center;
+    }
+
+    h1{
+      margin-top:20px;
+    }
+
+    .container{
+      position:relative;
+      width:640px;
+      margin:auto;
+    }
+
+    video{
+      display:none;
+    }
+
+    canvas{
+      width:640px;
+      height:480px;
+      border:2px solid white;
+      border-radius:10px;
+    }
+
+    #camera-status{
+      margin-top:15px;
+      color:#00ff88;
+      font-size:18px;
+    }
+
+  </style>
+</head>
+
+<body>
+
+<h1>Virtual Piano Hand Tracking</h1>
+
+<div class="container">
+
+  <video class="input_video"></video>
+
+  <canvas
+          class="output_canvas"
+          width="640"
+          height="480">
+  </canvas>
+
+</div>
+
+<div id="camera-status">
+  Camera Active
+</div>
+
+<script src="./js/hands.js"></script>
+
+</body>
+</html>
