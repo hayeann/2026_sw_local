@@ -7,30 +7,17 @@ const canvasElement =
 const canvasCtx =
     canvasElement.getContext('2d');
 
-// ROI 설정
 
-const ROI = {
-    x: 120,
-    y: 260,
-    width: 400,
-    height: 180
-};
+// 피아노 생성
 
-// FPS 최적화
+createPianoKeys(
+    canvasElement.width,
+    canvasElement.height
+);
 
-let frameCounter = 0;
-const skipInterval = 2;
+// 손 인식 결과 처리
 
-// Hands 결과 처리
-
-function onResults(results) {
-
-    frameCounter++;
-
-    // 프레임 스킵
-    if(frameCounter % skipInterval !== 0){
-        return;
-    }
+function onResults(results){
 
     canvasCtx.save();
 
@@ -43,117 +30,239 @@ function onResults(results) {
 
     // 미러링
 
-    canvasCtx.translate(canvasElement.width, 0);
-    canvasCtx.scale(-1, 1);
+    canvasCtx.translate(
+        canvasElement.width,
+        0
+    );
 
-    // 비디오 출력
+    canvasCtx.scale(-1,1);
+
+    // 카메라 영상 출력
 
     canvasCtx.drawImage(
+
         results.image,
+
         0,
         0,
+
         canvasElement.width,
         canvasElement.height
+
     );
 
-    // ROI 표시
+    // 건반 상태 초기화
 
-    canvasCtx.strokeStyle = 'yellow';
-    canvasCtx.lineWidth = 3;
+    pianoKeys.forEach(key => {
 
-    canvasCtx.strokeRect(
-        ROI.x,
-        ROI.y,
-        ROI.width,
-        ROI.height
-    );
+        key.pressed = false;
 
-    // 손 랜드마크 처리
+    });
+
+    // 손가락 위치 계산
+
+    let allHands = [];
 
     if(results.multiHandLandmarks){
 
         for(const landmarks of results.multiHandLandmarks){
 
-            // 검지 끝 좌표
-            const tipX =
-                landmarks[8].x * canvasElement.width;
+            allHands.push(landmarks);
 
-            const tipY =
-                landmarks[8].y * canvasElement.height;
+            const fingerX =
+                landmarks[8].x
+                * canvasElement.width;
 
-            // ROI 내부 판별
-            const insideROI =
-                tipX > ROI.x &&
-                tipX < ROI.x + ROI.width &&
-                tipY > ROI.y &&
-                tipY < ROI.y + ROI.height;
+            const fingerY =
+                landmarks[8].y
+                * canvasElement.height;
 
-            // ROI 내부일 때만 출력
-            if(insideROI){
+            // 건반 충돌 검사
 
-                drawConnectors(
-                    canvasCtx,
-                    landmarks,
-                    HAND_CONNECTIONS,
-                    {
-                        color:'#00FF00',
-                        lineWidth:3
-                    }
-                );
+            pianoKeys.forEach(key => {
 
-                drawLandmarks(
-                    canvasCtx,
-                    landmarks,
-                    {
-                        color:'#FF0000',
-                        fillColor:'#00FF00',
-                        radius:5
-                    }
-                );
-            }
+                if(
+
+                    fingerX > key.x &&
+                    fingerX < key.x + key.width &&
+
+                    fingerY > key.y &&
+                    fingerY < key.y + key.height
+
+                ){
+
+                    key.pressed = true;
+
+                }
+
+            });
+
         }
+
     }
 
+    // 흰 건반 렌더링
+
+    pianoKeys
+        .filter(key => key.keyType === "white")
+        .forEach(key => {
+
+            canvasCtx.fillStyle =
+
+                key.pressed
+                    ? "rgba(180,180,180,0.85)"
+                    : "rgba(255,255,255,0.65)";
+
+
+            canvasCtx.fillRect(
+
+                key.x,
+                key.y,
+
+                key.width,
+                key.height
+
+            );
+
+
+            canvasCtx.strokeStyle = "rgba(255,255,255,0.25)";
+
+            canvasCtx.lineWidth = 2;
+
+            canvasCtx.strokeRect(
+
+                key.x,
+                key.y,
+
+                key.width,
+                key.height
+
+            );
+
+
+            canvasCtx.fillStyle = "black";
+
+            canvasCtx.font = "18px Arial";
+
+            canvasCtx.fillText(
+
+                key.pitch,
+
+                key.x + 15,
+                key.y + key.height - 20
+
+            );
+
+        });
+
+    // 검은 건반 렌더링
+
+    pianoKeys
+        .filter(key => key.keyType === "black")
+        .forEach(key => {
+
+            canvasCtx.fillStyle =
+
+                key.pressed
+                    ? "rgba(0,0,0,0.95)"
+                    : "rgba(0,0,0,0.65)";
+
+
+            canvasCtx.fillRect(
+
+                key.x,
+                key.y,
+
+                key.width,
+                key.height
+
+            );
+
+        });
+
+    // 손 랜드마크 덧그리기
+
+    allHands.forEach(landmarks => {
+
+        drawConnectors(
+
+            canvasCtx,
+            landmarks,
+            HAND_CONNECTIONS,
+
+            {
+                color:"#00FF00",
+                lineWidth:4
+            }
+
+        );
+
+        drawLandmarks(
+
+            canvasCtx,
+            landmarks,
+
+            {
+                color:"#FF0000",
+                fillColor:"#00FF00",
+                radius:5
+            }
+
+        );
+
+    });
+
+
     canvasCtx.restore();
+
 }
 
-// MediaPipe Hands 설정
+// MediaPipe Hands
 
 const hands = new Hands({
 
     locateFile: (file) => {
+
         return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+
     }
 
 });
 
+
 hands.setOptions({
 
     maxNumHands:2,
+
     modelComplexity:1,
 
     minDetectionConfidence:0.5,
+
     minTrackingConfidence:0.5
 
 });
 
+
 hands.onResults(onResults);
 
-// 카메라 설정
+// 카메라
 
 const camera = new Camera(videoElement, {
 
     onFrame: async () => {
 
         await hands.send({
+
             image: videoElement
+
         });
 
     },
 
-    width:640,
-    height:480
+    width:1000,
+    height:700
 
 });
+
 
 camera.start();
