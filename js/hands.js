@@ -28,14 +28,28 @@ function onResults(results){
         canvasElement.height
     );
 
-    // 미러링 - 2026.05.29 - 이채민, 미러링 버그로 건반 아래 글자까지 뒤집히는 오류 발생 이에 따라 수정함.
+    // 미러링
 
-    canvasCtx.save();
-    canvasCtx.translate(canvasElement.width, 0);
-    canvasCtx.scale(-1, 1);
-    canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-    canvasCtx.restore();
+    canvasCtx.translate(
+        canvasElement.width,
+        0
+    );
 
+    canvasCtx.scale(-1,1);
+
+    // 카메라 영상 출력
+
+    canvasCtx.drawImage(
+
+        results.image,
+
+        0,
+        0,
+
+        canvasElement.width,
+        canvasElement.height
+
+    );
 
     // 건반 상태 초기화
 
@@ -55,9 +69,13 @@ function onResults(results){
 
             allHands.push(landmarks);
 
-           // [X축 미러링 보정] 거울 모드 화면과 1:1 매칭되도록 MediaPipe 원본 X 좌표를 뒤집음
-            const fingerX = (1.0 - landmarks[8].x) * canvasElement.width;
-            const fingerY = landmarks[8].y * canvasElement.height;
+            const fingerX =
+                landmarks[8].x
+                * canvasElement.width;
+
+            const fingerY =
+                landmarks[8].y
+                * canvasElement.height;
 
             // 건반 충돌 검사
 
@@ -128,9 +146,11 @@ function onResults(results){
 
             canvasCtx.fillText(
 
-               key.pitch,
-                key.x + (key.width / 2) - 10,
+                key.pitch,
+
+                key.x + 15,
                 key.y + key.height - 20
+
             );
 
         });
@@ -161,8 +181,6 @@ function onResults(results){
         });
 
     // 손 랜드마크 덧그리기
-canvasCtx.translate(canvasElement.width, 0);
-canvasCtx.scale(-1, 1);
 
     allHands.forEach(landmarks => {
 
