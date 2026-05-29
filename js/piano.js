@@ -1,3 +1,5 @@
+// [SRS 4.3 실시간 시각적 피드백 시스템] 하단 추가 - 2026.05.29 이채민
+
 const pianoKeys = [];
 
 // 건반 생성 함수
@@ -127,4 +129,40 @@ function createPianoKeys(canvasWidth, canvasHeight){
 
     });
 
+}
+
+// [SRS 4.3 실시간 시각적 피드백 시스템] 
+function drawPianoKeys(ctx) {
+    // 1. 흰 건반 먼저 그리기 (배열의 앞부분)
+    pianoKeys.forEach(key => {
+        if (key.keyType === "white") {
+            // 평상시에는 흰색, 눌렸을 때는 다른 색상
+            ctx.fillStyle = key.pressed ? "#E0E0E0" : "#FFFFFF";
+            ctx.fillRect(key.x, key.y, key.width, key.height);
+            
+            // 건반 테두리 선 (회색)
+            ctx.strokeStyle = "#CCCCCC";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(key.x, key.y, key.width, key.height);
+            
+            // [SRS 4.1.1 속성 매핑 표시] 건반 하단에 음계 이름(C4, D4 등) 텍스트 출력
+            ctx.fillStyle = "#555555";
+            ctx.font = "14px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText(key.pitch, key.x + key.width / 2, key.y + key.height - 20);
+        }
+    });
+
+    // 2. 검은 건반 위에 덮어 그리기 (배열의 뒷부분)
+    pianoKeys.forEach(key => {
+        if (key.keyType === "black") {
+            // 평상시에는 검은색, 눌렸을 때는 어두운 빨간색 등
+            ctx.fillStyle = key.pressed ? "#8B0000" : "#333333";
+            ctx.fillRect(key.x, key.y, key.width, key.height);
+            
+            // 검은 건반 테두리
+            ctx.strokeStyle = "#000000";
+            ctx.strokeRect(key.x, key.y, key.width, key.height);
+        }
+    });
 }
