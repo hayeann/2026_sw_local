@@ -15,6 +15,39 @@ createPianoKeys(
     canvasElement.height
 );
 
+
+// 모니터 좌표 -> 캔버스 좌표 변환
+
+function monitorToCanvas(x, y){
+
+    return {
+        x: (x / monitorWidth) * canvasElement.width,
+        y: (y / monitorHeight) * canvasElement.height
+    };
+
+}
+
+
+// ROI 영역 시각화
+
+function drawROI(){
+
+    const x = roiTopLeft.x * canvasElement.width;
+    const y = roiTopLeft.y * canvasElement.height;
+
+    const width =
+        (roiBottomRight.x - roiTopLeft.x) * canvasElement.width;
+
+    const height =
+        (roiBottomRight.y - roiTopLeft.y) * canvasElement.height;
+
+    canvasCtx.strokeStyle = "rgba(255,255,0,0.9)";
+    canvasCtx.lineWidth = 2;
+    canvasCtx.strokeRect(x, y, width, height);
+
+}
+
+
 // 손 인식 결과 처리
 
 function onResults(results){
@@ -28,30 +61,22 @@ function onResults(results){
         canvasElement.height
     );
 
-    // 미러링
 
-    canvasCtx.translate(
-        canvasElement.width,
-        0
-    );
+// 미러링 (좌우반전) 적용해 카메라 영상 출력
 
-    canvasCtx.scale(-1,1);
-
-    // 카메라 영상 출력
+    canvasCtx.translate(canvasElement.width,0);
+    canvasCtx.scale(-1, 1);
 
     canvasCtx.drawImage(
-
         results.image,
-
         0,
         0,
-
         canvasElement.width,
         canvasElement.height
-
     );
 
-    // 건반 상태 초기화
+
+    // 매 프레임마다 건반 상태 초기화
 
     pianoKeys.forEach(key => {
 
@@ -59,47 +84,54 @@ function onResults(results){
 
     });
 
-    // 손가락 위치 계산
-
     let allHands = [];
 
     if(results.multiHandLandmarks){
 
-        for(const landmarks of results.multiHandLandmarks){
+        allHands = results.multiHandLandmarks;
 
-            allHands.push(landmarks);
+        const fingerList = trackMultipleFingers(
+            results.multiHandLandmarks,
+            monitorWidth,
+            monitorHeight
+        );
 
-            const fingerX =
-                landmarks[8].x
-                * canvasElement.width;
+        fingerList.forEach(finger => {
 
-            const fingerY =
-                landmarks[8].y
-                * canvasElement.height;
-
-            // 건반 충돌 검사
+            const canvasPoint = monitorToCanvas(
+                finger.x,
+                finger.y
+            );
 
             pianoKeys.forEach(key => {
-
                 if(
-
-                    fingerX > key.x &&
-                    fingerX < key.x + key.width &&
-
-                    fingerY > key.y &&
-                    fingerY < key.y + key.height
-
+                    canvasPoint.x > key.x &&
+                    canvasPoint.x < key.x + key.width &&
+                    canvasPoint.y > key.y &&
+                    canvasPoint.y < key.y + key.height
                 ){
-
                     key.pressed = true;
-
                 }
-
             });
 
-        }
+
+            // 추적된 손가락 위치 표시(파란점은 제 건반 판정에 사용되는 손가락 좌표를 눈으로 보여주는 디버그점)
+            canvasCtx.beginPath();
+            canvasCtx.arc(
+
+                canvasPoint.x,
+                canvasPoint.y,
+                8,
+                0,
+                Math.PI * 2
+            );
+            canvasCtx.fillStyle = "cyan";
+            canvasCtx.fill();
+
+        });
 
     }
+
 
     // 흰 건반 렌더링
 
@@ -112,7 +144,6 @@ function onResults(results){
                 key.pressed
                     ? "rgba(180,180,180,0.85)"
                     : "rgba(255,255,255,0.65)";
-
 
             canvasCtx.fillRect(
 
@@ -179,6 +210,10 @@ function onResults(results){
             );
 
         });
+
+    // ROI 표시
+
+    drawROI();
 
     // 손 랜드마크 덧그리기
 
