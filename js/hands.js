@@ -98,12 +98,20 @@ function onResults(results){
 
             canvasCtx.fillStyle = "black";
             canvasCtx.font = "18px Arial";
-            canvasCtx.fillText(
-               key.pitch,
-                key.x + (key.width / 2) - 10,
-                key.y + key.height - 20
-            );
+            canvasCtx.strokeStyle = "rgba(255,255,255,0.25)";
+            canvasCtx.lineWidth = 2;
+            canvasCtx.strokeRect(key.x, key.y, key.width, key.height);
 
+            // [SRS 4.4 적용] showLabels가 true일 때만 음계 글씨를 캔버스에 출력합니다.
+            if (showLabels) {
+                canvasCtx.fillStyle = "black";
+                canvasCtx.font = "18px Arial";
+                canvasCtx.fillText(
+                    key.pitch,
+                    key.x + (key.width / 2) - 10,
+                    key.y + key.height - 20
+                );
+            }
         });
 
     // 검은 건반 렌더링 (하드코딩 제거 및 객체 속성 색상 적용 완료)
@@ -119,6 +127,18 @@ function onResults(results){
                 key.width,
                 key.height
             );
+            // 2. [SRS 4.4 ] 검은 건반에도 라벨 표시
+
+            if (showLabels) {
+                canvasCtx.fillStyle = "white";       
+                canvasCtx.font = "14px Arial";      
+                
+                canvasCtx.fillText(
+                    key.pitch,
+                    key.x + (key.width / 2) - 14,    
+                    key.y + key.height - 20          
+                );
+            }
 
         });
 
