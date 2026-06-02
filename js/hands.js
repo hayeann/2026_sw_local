@@ -23,13 +23,13 @@ createPianoKeys(
 
 function monitorToCanvas(x, y){
 
-    return {
-         x: canvasElement.width -
-                   ((x / monitorWidth) * canvasElement.width),
+     const cx = (x / monitorWidth) * canvasElement.width;
+        const cy = (y / monitorHeight) * canvasElement.height;
 
-                y: (y / monitorHeight) * canvasElement.height
-    };
-
+        return {
+            x: canvasElement.width - cx,
+            y: cy
+        };
 }
 
 
@@ -71,12 +71,12 @@ function onResults(results){
         canvasElement.width,
         canvasElement.height
     );
-.
+
     canvasCtx.translate(canvasElement.width, 0);
     canvasCtx.scale(-1, 1);
     canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-    // 건반 상태 초기화
     canvasCtx.restore();
+
 
     pianoKeys.forEach(key => {
 
@@ -317,7 +317,8 @@ function onResults(results){
     });
     canvasCtx.restore(); // 뼈대 미러링 상태 복구
 
-    canvasCtx.restore();//5.30윤나영 수정
+    canvasCtx.restore();
+
     canvasCtx.fillStyle = "yellow";
 
     canvasCtx.font = "20px Arial";
