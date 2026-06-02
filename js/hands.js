@@ -24,8 +24,10 @@ createPianoKeys(
 function monitorToCanvas(x, y){
 
     return {
-        x: (x / monitorWidth) * canvasElement.width,
-        y: (y / monitorHeight) * canvasElement.height
+         x: canvasElement.width -
+                   ((x / monitorWidth) * canvasElement.width),
+
+                y: (y / monitorHeight) * canvasElement.height
     };
 
 }
@@ -69,14 +71,12 @@ function onResults(results){
         canvasElement.width,
         canvasElement.height
     );
-
-    // 미러링 - 2026.05.29 - 이채민, 미러링 버그로 건반 아래 글자까지 뒤집히는 오류 발생 이에 따라 수정함.
-    canvasCtx.save();
+.
     canvasCtx.translate(canvasElement.width, 0);
     canvasCtx.scale(-1, 1);
     canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-    canvasCtx.restore();
     // 건반 상태 초기화
+    canvasCtx.restore();
 
     pianoKeys.forEach(key => {
 
@@ -180,7 +180,6 @@ function onResults(results){
             });
 
             canvasCtx.beginPath();
-
             canvasCtx.arc(
                 canvasPoint.x,
                 canvasPoint.y,
