@@ -18,6 +18,39 @@ createPianoKeys(
     canvasElement.height
 );
 
+
+// 모니터 좌표 -> 캔버스 좌표 변환
+
+function monitorToCanvas(x, y){
+
+    return {
+        x: (x / monitorWidth) * canvasElement.width,
+        y: (y / monitorHeight) * canvasElement.height
+    };
+
+}
+
+
+// ROI 영역 시각화
+
+function drawROI(){
+
+    const x = roiTopLeft.x * canvasElement.width;
+    const y = roiTopLeft.y * canvasElement.height;
+
+    const width =
+        (roiBottomRight.x - roiTopLeft.x) * canvasElement.width;
+
+    const height =
+        (roiBottomRight.y - roiTopLeft.y) * canvasElement.height;
+
+    canvasCtx.strokeStyle = "rgba(255,255,0,0.9)";
+    canvasCtx.lineWidth = 2;
+    canvasCtx.strokeRect(x, y, width, height);
+
+}
+
+
 // 손 인식 결과 처리
 
 function onResults(results){
@@ -39,12 +72,10 @@ function onResults(results){
 
     // 미러링
 
-    canvasCtx.translate(
-        canvasElement.width,
-        0
-    );
+// 미러링 (좌우반전) 적용해 카메라 영상 출력
 
-    canvasCtx.scale(-1,1);
+    canvasCtx.translate(canvasElement.width,0);
+    canvasCtx.scale(-1, 1);
 
     // 카메라 영상 출력
 
@@ -60,147 +91,125 @@ function onResults(results){
 
     );
 
-    // 건반 상태 초기화
+
+    // 매 프레임마다 건반 상태 초기화
 
     pianoKeys.forEach(key => {
 
         key.pressed = false;
 
     });
-
     // 손가락 위치 계산
 
     let allHands = [];
 
     if(results.multiHandLandmarks){
 
-        results.multiHandLandmarks.forEach(//윤나영 5.30추가
+        results.multiHandLandmarks.forEach((landmarks,index)=>{
 
-            (landmarks,index)=>{//윤나영 5.30추가
-
-
-
-            const filteredLandmarks =
-                landmarks;//윤나영 5.30추가
+            const filteredLandmarks = landmarks;
 
             allHands.push(filteredLandmarks);
 
             const velocity =
-
                 tracker.calculateVelocity(
-
                     filteredLandmarks[8]
+                );
 
-                );//윤나영 5.30추가
+            const indexAngle =
+                tracker.calculateAngle(
+                    filteredLandmarks[5],
+                    filteredLandmarks[6],
+                    filteredLandmarks[8]
+                );
 
+            console.log(
+                "Index Angle:",
+                indexAngle
+            );
 
-             const indexAngle =
+            let label =
+                results.multiHandedness[index].label;
 
-                 tracker.calculateAngle(
+            if(label === "Left"){
+                label = "Right";
+            }
+            else{
+                label = "Left";
+            }
 
-                     filteredLandmarks[5],
-                     filteredLandmarks[6],
-                     filteredLandmarks[8]
+            const handID =
+                `${label}_${index}`;
 
-                 );
+            const palmX = (
+                filteredLandmarks[0].x +
+                filteredLandmarks[5].x +
+                filteredLandmarks[9].x +
+                filteredLandmarks[13].x +
+                filteredLandmarks[17].x
+            ) / 5;
 
-             console.log(
-                 "Index Angle:",
-                 indexAngle
-             );//윤나영 5.30추가
+            const palmY = (
+                filteredLandmarks[0].y +
+                filteredLandmarks[5].y +
+                filteredLandmarks[9].y +
+                filteredLandmarks[13].y +
+                filteredLandmarks[17].y
+            ) / 5;
 
-             let label =
+            canvasCtx.fillStyle = "yellow";
+            canvasCtx.font = "20px Arial";
 
-                 results.multiHandedness[index]
-                     .label;
+            canvasCtx.fillText(
+                handID,
+                palmX * canvasElement.width,
+                palmY * canvasElement.height
+            );
 
-             // 미러링 때문에 화면 표시용으로 좌우 반전
+        });
 
-             if(label === "Left"){
+        const fingerList = trackMultipleFingers(
+            results.multiHandLandmarks,
+            monitorWidth,
+            monitorHeight
+        );
 
-                 label = "Right";
+        fingerList.forEach(finger => {
 
-             }
-             else{
-
-                 label = "Left";
-
-             }//윤나영 5.30추가
-
-             const handID =//왼손 오른손 고유 ID부여
-
-                         `${label}_${index}`;
-
-                     // 손바닥 중앙 계산
-
-                     const palmX = (
-
-                         filteredLandmarks[0].x +
-                         filteredLandmarks[5].x +
-                         filteredLandmarks[9].x +
-                         filteredLandmarks[13].x +
-                         filteredLandmarks[17].x
-
-                     ) / 5;
-
-                     const palmY = (
-
-                         filteredLandmarks[0].y +
-                         filteredLandmarks[5].y +
-                         filteredLandmarks[9].y +
-                         filteredLandmarks[13].y +
-                         filteredLandmarks[17].y
-
-                     ) / 5;
-
-                     canvasCtx.fillStyle = "yellow";
-
-                     canvasCtx.font = "20px Arial";
-
-                     canvasCtx.fillText(
-
-                         handID,
-
-                         palmX * canvasElement.width,
-
-                         palmY * canvasElement.height
-
-                     );//윤나영 5.30추가
-
-
-
-            const fingerX =
-                filteredLandmarks[8].x
-                * canvasElement.width;//윤나영 5.30수정
-
-            const fingerY =
-                filteredLandmarks[8].y
-                * canvasElement.height;//윤나영 5.30수정
-
-            // 건반 충돌 검사
+            const canvasPoint = monitorToCanvas(
+                finger.x,
+                finger.y
+            );
 
             pianoKeys.forEach(key => {
 
                 if(
-
-                    fingerX > key.x &&
-                    fingerX < key.x + key.width &&
-
-                    fingerY > key.y &&
-                    fingerY < key.y + key.height
-
+                    canvasPoint.x > key.x &&
+                    canvasPoint.x < key.x + key.width &&
+                    canvasPoint.y > key.y &&
+                    canvasPoint.y < key.y + key.height
                 ){
-
                     key.pressed = true;
-
                 }
 
             });
 
+            canvasCtx.beginPath();
+
+            canvasCtx.arc(
+                canvasPoint.x,
+                canvasPoint.y,
+                8,
+                0,
+                Math.PI * 2
+            );
+
+            canvasCtx.fillStyle = "cyan";
+            canvasCtx.fill();
+
         });
 
     }
-
     // 흰 건반 렌더링
 
     pianoKeys
@@ -279,6 +288,10 @@ function onResults(results){
             );
 
         });
+
+    // ROI 표시
+
+    drawROI();
 
     // 손 랜드마크 덧그리기
 
