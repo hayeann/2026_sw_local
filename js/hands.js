@@ -70,35 +70,26 @@ function onResults(results){
         canvasElement.height
     );
 
-    // 미러링
-
-// 미러링 (좌우반전) 적용해 카메라 영상 출력
-
-    canvasCtx.translate(canvasElement.width,0);
+    // 미러링 - 2026.05.29 - 이채민, 미러링 버그로 건반 아래 글자까지 뒤집히는 오류 발생 이에 따라 수정함.
+    canvasCtx.save();
+    canvasCtx.translate(canvasElement.width, 0);
     canvasCtx.scale(-1, 1);
-
-    // 카메라 영상 출력
-
-    canvasCtx.drawImage(
-
-        results.image,
-
-        0,
-        0,
+    canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+    canvasCtx.restore();
 
         canvasElement.width,
         canvasElement.height
 
     );
 
-
-    // 매 프레임마다 건반 상태 초기화
+    // 건반 상태 초기화
 
     pianoKeys.forEach(key => {
 
         key.pressed = false;
 
     });
+
     // 손가락 위치 계산
 
     let allHands = [];
@@ -210,18 +201,14 @@ function onResults(results){
         });
 
     }
+
     // 흰 건반 렌더링
 
     pianoKeys
         .filter(key => key.keyType === "white")
         .forEach(key => {
 
-            canvasCtx.fillStyle =
-
-                key.pressed
-                    ? "rgba(180,180,180,0.85)"
-                    : "rgba(255,255,255,0.65)";
-
+            canvasCtx.fillStyle = key.isPressed ? key.activeColor : key.idleColor;
 
             canvasCtx.fillRect(
 
@@ -252,30 +239,28 @@ function onResults(results){
             canvasCtx.fillStyle = "black";
 
             canvasCtx.font = "18px Arial";
+            canvasCtx.strokeStyle = "rgba(255,255,255,0.25)";
+            canvasCtx.lineWidth = 2;
+            canvasCtx.strokeRect(key.x, key.y, key.width, key.height);
 
-            canvasCtx.fillText(
-
-                key.pitch,
-
-                key.x + 15,
-                key.y + key.height - 20
-
-            );
-
+            // [SRS 4.4 적용] showLabels가 true일 때만 음계 글씨를 캔버스에 출력합니다.
+            if (showLabels) {
+                canvasCtx.fillStyle = "black";
+                canvasCtx.font = "18px Arial";
+                canvasCtx.fillText(
+                    key.pitch,
+                    key.x + (key.width / 2) - 10,
+                    key.y + key.height - 20
+                );
+            }
         });
 
-    // 검은 건반 렌더링
-
+    // 검은 건반 렌더링 (하드코딩 제거 및 객체 속성 색상 적용 완료)
     pianoKeys
         .filter(key => key.keyType === "black")
         .forEach(key => {
 
-            canvasCtx.fillStyle =
-
-                key.pressed
-                    ? "rgba(0,0,0,0.95)"
-                    : "rgba(0,0,0,0.65)";
-
+            canvasCtx.fillStyle = key.isPressed ? key.activeColor : key.idleColor;
 
             canvasCtx.fillRect(
 
@@ -284,16 +269,29 @@ function onResults(results){
 
                 key.width,
                 key.height
-
             );
+            // 2. [SRS 4.4 ] 검은 건반에도 라벨 표시
+
+            if (showLabels) {
+                canvasCtx.fillStyle = "white";
+                canvasCtx.font = "14px Arial";
+
+                canvasCtx.fillText(
+                    key.pitch,
+                    key.x + (key.width / 2) - 14,
+                    key.y + key.height - 20
+                );
+            }
 
         });
 
     // ROI 표시
 
     drawROI();
-
-    // 손 랜드마크 덧그리기
+    // 손 랜드마크 덧그리기 (안전한 스택 관리를 위해 내부 save/restore 추가)
+    canvasCtx.save();
+    canvasCtx.translate(canvasElement.width, 0);
+    canvasCtx.scale(-1, 1);
 
     allHands.forEach(landmarks => {
 
@@ -324,6 +322,7 @@ function onResults(results){
         );
 
     });
+    canvasCtx.restore(); // 뼈대 미러링 상태 복구
 
     canvasCtx.restore();//5.30윤나영 수정
     canvasCtx.fillStyle = "yellow";
