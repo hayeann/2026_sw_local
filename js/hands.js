@@ -76,12 +76,6 @@ function onResults(results){
     canvasCtx.scale(-1, 1);
     canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
     canvasCtx.restore();
-
-        canvasElement.width,
-        canvasElement.height
-
-    );
-
     // 건반 상태 초기화
 
     pianoKeys.forEach(key => {
@@ -208,7 +202,7 @@ function onResults(results){
         .filter(key => key.keyType === "white")
         .forEach(key => {
 
-            canvasCtx.fillStyle = key.isPressed ? key.activeColor : key.idleColor;
+            canvasCtx.fillStyle = key.pressed ? key.activeColor : key.idleColor;
 
             canvasCtx.fillRect(
 
@@ -260,7 +254,7 @@ function onResults(results){
         .filter(key => key.keyType === "black")
         .forEach(key => {
 
-            canvasCtx.fillStyle = key.isPressed ? key.activeColor : key.idleColor;
+            canvasCtx.fillStyle = key.pressed ? key.activeColor : key.idleColor;
 
             canvasCtx.fillRect(
 
