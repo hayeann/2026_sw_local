@@ -145,11 +145,10 @@ function onResults(results){
             canvasCtx.fillStyle = "yellow";
             canvasCtx.font = "20px Arial";
 
-            canvasCtx.fillText(
-                handID,
-                palmX * canvasElement.width,
-                palmY * canvasElement.height
-            );
+            const textX = canvasElement.width - (palmX * canvasElement.width);
+            const textY = palmY * canvasElement.height;
+
+            canvasCtx.fillText(handID, textX, textY);
 
         });
 
