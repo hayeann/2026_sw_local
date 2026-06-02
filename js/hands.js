@@ -79,23 +79,50 @@ function onResults(results){
 
             // 건반 충돌 검사
 
-            pianoKeys.forEach(key => {
+            let blackKeyPressed = false;
 
-                if(
+            pianoKeys
+                .filter(key => key.keyType === "black")
+                .forEach(key => {
 
-                    fingerX > key.x &&
-                    fingerX < key.x + key.width &&
+                    if (
 
-                    fingerY > key.y &&
-                    fingerY < key.y + key.height
+                        fingerX > key.x &&
+                        fingerX < key.x + key.width &&
 
-                ){
+                        fingerY > key.y &&
+                        fingerY < key.y + key.height
 
-                    key.pressed = true;
+                    ) {
 
-                }
+                        key.pressed = true;
+                        blackKeyPressed = true;
 
-            });
+                    }
+
+                });
+
+            if (!blackKeyPressed) {
+
+                pianoKeys
+                    .filter(key => key.keyType === "white")
+                    .forEach(key => {
+
+                        if (
+
+                            fingerX > key.x &&
+                            fingerX < key.x + key.width &&
+
+                            fingerY > key.y &&
+                            fingerY < key.y + key.height
+
+                        ) {
+
+                            key.pressed = true;
+
+                        }
+                    });
+            }
 
         }
 
