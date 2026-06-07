@@ -158,6 +158,10 @@ function onResults(results){
             monitorHeight
         );
 
+
+
+        // 건반 수정 부분
+
         fingerList.forEach(finger => {
 
             const canvasPoint = monitorToCanvas(
@@ -165,20 +169,49 @@ function onResults(results){
                 finger.y
             );
 
-            pianoKeys.forEach(key => {
+            let blackKeyPressed = false;
 
-                if(
-                    canvasPoint.x > key.x &&
-                    canvasPoint.x < key.x + key.width &&
-                    canvasPoint.y > key.y &&
-                    canvasPoint.y < key.y + key.height
-                ){
-                    key.pressed = true;
-                }
+            pianoKeys
+                .filter(key => key.keyType === "black")
+                .forEach(key => {
 
-            });
+                    if (
+                        canvasPoint.x > key.x &&
+                        canvasPoint.x < key.x + key.width &&
+                        canvasPoint.y > key.y &&
+                        canvasPoint.y < key.y + key.height
+                    ) {
+
+                        key.pressed = true;
+                        blackKeyPressed = true;
+
+                    }
+
+                });
+
+            if (!blackKeyPressed) {
+
+                pianoKeys
+                    .filter(key => key.keyType === "white")
+                    .forEach(key => {
+
+                        if (
+                            canvasPoint.x > key.x &&
+                            canvasPoint.x < key.x + key.width &&
+                            canvasPoint.y > key.y &&
+                            canvasPoint.y < key.y + key.height
+                        ) {
+
+                            key.pressed = true;
+
+                        }
+
+                    });
+
+            }
 
             canvasCtx.beginPath();
+
             canvasCtx.arc(
                 canvasPoint.x,
                 canvasPoint.y,
