@@ -7,6 +7,9 @@ const canvasElement =
 const canvasCtx =
     canvasElement.getContext('2d');
 
+const tracker =
+    new TrackingManager(); //윤나영 5.30추가
+
 
 // 피아노 생성
 
@@ -15,9 +18,50 @@ createPianoKeys(
     canvasElement.height
 );
 
+
+// 모니터 좌표 -> 캔버스 좌표 변환
+
+function monitorToCanvas(x, y){
+
+     const cx = (x / monitorWidth) * canvasElement.width;
+        const cy = (y / monitorHeight) * canvasElement.height;
+
+        return {
+            x: canvasElement.width - cx,
+            y: cy
+        };
+}
+
+
+// ROI 영역 시각화
+
+function drawROI(){
+
+    const x = roiTopLeft.x * canvasElement.width;
+    const y = roiTopLeft.y * canvasElement.height;
+
+    const width =
+        (roiBottomRight.x - roiTopLeft.x) * canvasElement.width;
+
+    const height =
+        (roiBottomRight.y - roiTopLeft.y) * canvasElement.height;
+
+    canvasCtx.strokeStyle = "rgba(255,255,0,0.9)";
+    canvasCtx.lineWidth = 2;
+    canvasCtx.strokeRect(x, y, width, height);
+
+}
+
+
 // 손 인식 결과 처리
 
 function onResults(results){
+
+    tracker.updatePerformance(); //윤나영 5.30추가
+
+    tracker.detectHands(results); //윤나영 5.30추가
+
+    tracker.detectHandedness(results); //윤나영 5.30추가
 
     canvasCtx.save();
 
@@ -28,30 +72,11 @@ function onResults(results){
         canvasElement.height
     );
 
-    // 미러링
+    canvasCtx.translate(canvasElement.width, 0);
+    canvasCtx.scale(-1, 1);
+    canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+    canvasCtx.restore();
 
-    canvasCtx.translate(
-        canvasElement.width,
-        0
-    );
-
-    canvasCtx.scale(-1,1);
-
-    // 카메라 영상 출력
-
-    canvasCtx.drawImage(
-
-        results.image,
-
-        0,
-        0,
-
-        canvasElement.width,
-        canvasElement.height
-
-    );
-
-    // 건반 상태 초기화
 
     pianoKeys.forEach(key => {
 
@@ -65,19 +90,84 @@ function onResults(results){
 
     if(results.multiHandLandmarks){
 
-        for(const landmarks of results.multiHandLandmarks){
+        results.multiHandLandmarks.forEach((landmarks,index)=>{
 
-            allHands.push(landmarks);
+            const filteredLandmarks = landmarks;
 
-            const fingerX =
-                landmarks[8].x
-                * canvasElement.width;
+            allHands.push(filteredLandmarks);
 
-            const fingerY =
-                landmarks[8].y
-                * canvasElement.height;
+            const velocity =
+                tracker.calculateVelocity(
+                    filteredLandmarks[8]
+                );
 
-            // 건반 충돌 검사
+            const indexAngle =
+                tracker.calculateAngle(
+                    filteredLandmarks[5],
+                    filteredLandmarks[6],
+                    filteredLandmarks[8]
+                );
+
+            console.log(
+                "Index Angle:",
+                indexAngle
+            );
+
+            let label =
+                results.multiHandedness[index].label;
+
+            if(label === "Left"){
+                label = "Right";
+            }
+            else{
+                label = "Left";
+            }
+
+            const handID =
+                `${label}_${index}`;
+
+            const palmX = (
+                filteredLandmarks[0].x +
+                filteredLandmarks[5].x +
+                filteredLandmarks[9].x +
+                filteredLandmarks[13].x +
+                filteredLandmarks[17].x
+            ) / 5;
+
+            const palmY = (
+                filteredLandmarks[0].y +
+                filteredLandmarks[5].y +
+                filteredLandmarks[9].y +
+                filteredLandmarks[13].y +
+                filteredLandmarks[17].y
+            ) / 5;
+
+            canvasCtx.fillStyle = "yellow";
+            canvasCtx.font = "20px Arial";
+
+            const textX = canvasElement.width - (palmX * canvasElement.width);
+            const textY = palmY * canvasElement.height;
+
+            canvasCtx.fillText(handID, textX, textY);
+
+        });
+
+        const fingerList = trackMultipleFingers(
+            results.multiHandLandmarks,
+            monitorWidth,
+            monitorHeight
+        );
+
+
+
+        // 건반 수정 부분
+
+        fingerList.forEach(finger => {
+
+            const canvasPoint = monitorToCanvas(
+                finger.x,
+                finger.y
+            );
 
             let blackKeyPressed = false;
 
@@ -86,13 +176,10 @@ function onResults(results){
                 .forEach(key => {
 
                     if (
-
-                        fingerX > key.x &&
-                        fingerX < key.x + key.width &&
-
-                        fingerY > key.y &&
-                        fingerY < key.y + key.height
-
+                        canvasPoint.x > key.x &&
+                        canvasPoint.x < key.x + key.width &&
+                        canvasPoint.y > key.y &&
+                        canvasPoint.y < key.y + key.height
                     ) {
 
                         key.pressed = true;
@@ -109,22 +196,34 @@ function onResults(results){
                     .forEach(key => {
 
                         if (
-
-                            fingerX > key.x &&
-                            fingerX < key.x + key.width &&
-
-                            fingerY > key.y &&
-                            fingerY < key.y + key.height
-
+                            canvasPoint.x > key.x &&
+                            canvasPoint.x < key.x + key.width &&
+                            canvasPoint.y > key.y &&
+                            canvasPoint.y < key.y + key.height
                         ) {
 
                             key.pressed = true;
 
                         }
+
                     });
+
             }
 
-        }
+            canvasCtx.beginPath();
+
+            canvasCtx.arc(
+                canvasPoint.x,
+                canvasPoint.y,
+                8,
+                0,
+                Math.PI * 2
+            );
+
+            canvasCtx.fillStyle = "cyan";
+            canvasCtx.fill();
+
+        });
 
     }
 
@@ -134,12 +233,7 @@ function onResults(results){
         .filter(key => key.keyType === "white")
         .forEach(key => {
 
-            canvasCtx.fillStyle =
-
-                key.pressed
-                    ? "rgba(180,180,180,0.85)"
-                    : "rgba(255,255,255,0.65)";
-
+            canvasCtx.fillStyle = key.pressed ? key.activeColor : key.idleColor;
 
             canvasCtx.fillRect(
 
@@ -170,30 +264,28 @@ function onResults(results){
             canvasCtx.fillStyle = "black";
 
             canvasCtx.font = "18px Arial";
+            canvasCtx.strokeStyle = "rgba(255,255,255,0.25)";
+            canvasCtx.lineWidth = 2;
+            canvasCtx.strokeRect(key.x, key.y, key.width, key.height);
 
-            canvasCtx.fillText(
-
-                key.pitch,
-
-                key.x + 15,
-                key.y + key.height - 20
-
-            );
-
+            // [SRS 4.4 적용] showLabels가 true일 때만 음계 글씨를 캔버스에 출력합니다.
+            if (showLabels) {
+                canvasCtx.fillStyle = "black";
+                canvasCtx.font = "18px Arial";
+                canvasCtx.fillText(
+                    key.pitch,
+                    key.x + (key.width / 2) - 10,
+                    key.y + key.height - 20
+                );
+            }
         });
 
-    // 검은 건반 렌더링
-
+    // 검은 건반 렌더링 (하드코딩 제거 및 객체 속성 색상 적용 완료)
     pianoKeys
         .filter(key => key.keyType === "black")
         .forEach(key => {
 
-            canvasCtx.fillStyle =
-
-                key.pressed
-                    ? "rgba(0,0,0,0.95)"
-                    : "rgba(0,0,0,0.65)";
-
+            canvasCtx.fillStyle = key.pressed ? key.activeColor : key.idleColor;
 
             canvasCtx.fillRect(
 
@@ -202,12 +294,29 @@ function onResults(results){
 
                 key.width,
                 key.height
-
             );
+            // 2. [SRS 4.4 ] 검은 건반에도 라벨 표시
+
+            if (showLabels) {
+                canvasCtx.fillStyle = "white";
+                canvasCtx.font = "14px Arial";
+
+                canvasCtx.fillText(
+                    key.pitch,
+                    key.x + (key.width / 2) - 14,
+                    key.y + key.height - 20
+                );
+            }
 
         });
 
-    // 손 랜드마크 덧그리기
+    // ROI 표시
+
+    drawROI();
+    // 손 랜드마크 덧그리기 (안전한 스택 관리를 위해 내부 save/restore 추가)
+    canvasCtx.save();
+    canvasCtx.translate(canvasElement.width, 0);
+    canvasCtx.scale(-1, 1);
 
     allHands.forEach(landmarks => {
 
@@ -238,9 +347,31 @@ function onResults(results){
         );
 
     });
-
+    canvasCtx.restore(); // 뼈대 미러링 상태 복구
 
     canvasCtx.restore();
+
+    canvasCtx.fillStyle = "yellow";
+
+    canvasCtx.font = "20px Arial";
+
+    canvasCtx.fillText(
+
+        `FPS : ${tracker.FramePerSecond.toFixed(1)}`,
+
+        20,
+        40
+
+    );
+
+    canvasCtx.fillText(
+
+        `Latency : ${tracker.FrameLatency.toFixed(1)} ms`,
+
+        20,
+        70
+
+    );
 
 }
 
