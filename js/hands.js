@@ -275,7 +275,7 @@ function onResults(results){
                 canvasCtx.fillText(
                     key.pitch,
                     key.x + (key.width / 2) - 10,
-                    key.y + key.height - 20
+                    key.y + key.height - 180
                 );
             }
         });
